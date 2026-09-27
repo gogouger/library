@@ -13,7 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/style.css?v=35">
+    <link rel="stylesheet" href="/style.css?v=36">
     <script>
         (function() {
             var t = localStorage.getItem('theme') || 'light';
@@ -25,7 +25,7 @@
     <nav class="navbar navbar-expand-lg sticky-top">
         <div class="container-fluid">
             <a class="navbar-brand" id="nav-brand" href="#">
-                <i class="bi bi-bookshelf"></i> Library
+                <small class="family-mark">GG /</small><i class="bi bi-bookshelf"></i> Library
             </a>
             <button class="navbar-toggler" type="button"
                     data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -49,11 +49,12 @@
                         <a class="nav-link" href="#/add" id="nav-add">Add Book</a>
                     </li>
                 </ul>
+                <a class="nav-link family-projects" href="https://gordongouger.com/projects.html">All projects</a>
                 <div class="navbar-nav" id="nav-user">
                     <a class="nav-link d-none" href="#" id="nav-my-library">My Library</a>
                     <span class="nav-link" id="nav-username"></span>
-                    <a class="nav-link d-none" href="/" id="nav-signin">Sign In</a>
-                    <a class="nav-link" href="#" id="nav-logout">Logout</a>
+                    <a class="nav-link d-none auth-action" href="/" id="nav-signin">Owner sign in</a>
+                    <a class="nav-link auth-action" href="#" id="nav-logout">Sign out</a>
                 </div>
                 <button class="theme-toggle" id="theme-toggle"
                         title="Toggle dark mode">
@@ -67,6 +68,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
             crossorigin="anonymous"></script>
-    <script src="/dist/app.js?v=69"></script>
+    <script src="/dist/app.js?v=70"></script>
 </body>
 </html>

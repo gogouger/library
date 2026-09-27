@@ -1587,6 +1587,7 @@ body::before {
 .navbar .nav-link:hover,
 .navbar .nav-link.active { color: var(--accent) !important; }
 .navbar .navbar-brand .bi { color: var(--accent); }
+.navbar .navbar-brand{display:flex;align-items:center;gap:.45rem;letter-spacing:.02em}.family-mark{color:var(--accent);font-size:.62rem;font-weight:600;letter-spacing:.12em}.family-projects{margin-left:.55rem;border-left:1px solid var(--line2);padding-left:1rem!important}.navbar .auth-action{border:1px solid var(--line2);border-radius:.2rem;padding:.36rem .65rem!important;color:var(--ink)!important}.navbar .auth-action:hover{border-color:var(--accent);color:var(--accent)!important}
 .navbar-toggler { border-color: var(--line2); }
 
 /* flatter cards/panels — hairline rules instead of heavy white shadows */

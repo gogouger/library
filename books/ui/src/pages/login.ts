@@ -11,7 +11,7 @@ export function renderLogin(): void {
                         <i class="bi bi-bookshelf"></i> Library
                     </h3>
                     <a class="btn btn-primary w-100" href="https://auth.gordongouger.com/?rd=${encodeURIComponent(window.location.href)}">
-                        Continue to secure sign in
+                        Owner sign in
                     </a>
                 </div>
             </div>
