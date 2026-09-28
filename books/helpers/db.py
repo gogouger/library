@@ -249,7 +249,35 @@ def init_db() -> None:
     _migrate_manual_category()
     _migrate_series_entries_cover_url()
     _migrate_asin()
+    cleanup_stale_sync_data()
     log.info("Database initialized at %s", DB_PATH)
+
+
+def cleanup_stale_sync_data() -> int:
+    """Age out abandoned KOReader progress without touching completed books.
+
+    A device may disappear or be reset while a book is marked as in progress.
+    After ninety days that progress can no longer be treated as an active sync
+    cursor.  Completed reading state, ratings, and all book metadata remain
+    untouched.  A subsequent KOReader sync simply establishes a fresh cursor.
+    """
+    cutoff = datetime.now(timezone.utc).timestamp() - (90 * 24 * 60 * 60)
+    cutoff_iso = datetime.fromtimestamp(cutoff, timezone.utc).isoformat()
+    conn = get_db()
+    cursor = conn.execute(
+        """UPDATE books
+        SET progress = NULL, sync_updated_at = NULL
+        WHERE reading_status = 'reading'
+          AND sync_updated_at IS NOT NULL
+          AND datetime(sync_updated_at) < datetime(?)""",
+        (cutoff_iso,),
+    )
+    conn.commit()
+    cleared = cursor.rowcount
+    conn.close()
+    if cleared:
+        log.info("Cleared stale KOReader progress for %d book(s)", cleared)
+    return cleared
 
 
 def _migrate_reading_status() -> None:
