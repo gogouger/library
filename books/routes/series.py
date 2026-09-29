@@ -88,6 +88,7 @@ def get_series(
         "monitored": bool(us.get("monitored", 1)),
         "series_complete": bool(us.get("series_complete", 1)),
         "user_rating": us.get("rating"),
+        "user_review": us.get("review"),
         "is_favorite": int(us.get("is_favorite") or 0) == 1,
         "is_all_time_fav": int(us.get("is_all_time_fav") or 0) == 1,
         "is_second_fav": int(us.get("is_second_fav") or 0) == 1,
@@ -158,6 +159,7 @@ class SeriesUpdate(BaseModel):
     monitored: bool | None = None
     series_complete: bool | None = None
     rating: float | None = None
+    review: str | None = None
     is_favorite: bool | None = None
     is_all_time_fav: bool | None = None
     is_second_fav: bool | None = None
@@ -234,6 +236,14 @@ def update_series(
             fields["is_second_fav"] = False
 
         db.update_user_series_fields(user_id, series_link_id, fields)
+
+    # An empty review deliberately clears the text. `model_fields_set`
+    # distinguishes that from an omitted review field.
+    if "review" in updates.model_fields_set:
+        db.update_user_series_fields(
+            user_id, series_link_id,
+            {"review": (updates.review or "").strip()},
+        )
 
     if updates.entries:
         for entry in updates.entries:

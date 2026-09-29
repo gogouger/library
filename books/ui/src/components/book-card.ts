@@ -58,18 +58,19 @@ export function bookCardHtml(book: any): string {
         ? `<div class="card-progress"><div class="card-progress-fill" style="width:${(book.progress * 100).toFixed(1)}%"></div></div>`
         : '';
 
-    // The "Don't own" / "Reading 35%" status badge below the title spells
-    // out what the accent bar implies — kept because the colour bar alone
-    // isn't unambiguous (especially in dark mode).
-    let statusBadge = '';
-    if (book.is_owned === 0) {
-        statusBadge = '<span class="card-status status-not-owned">Don&rsquo;t own</span>';
-    } else if (book.reading_status === 'read') {
-        statusBadge = '<span class="card-status status-read"><i class="bi bi-check-circle-fill"></i> Read</span>';
+    // Reading progress and ownership are independent facts. Display both so
+    // a borrowed/read book never looks like an unread catalog placeholder.
+    let readingBadge = '';
+    if (book.reading_status === 'read') {
+        readingBadge = '<span class="card-status status-read"><i class="bi bi-check-circle-fill"></i> Read</span>';
     } else if (book.reading_status === 'reading') {
         const pct = book.progress ? ` ${Math.round(book.progress * 100)}%` : '';
-        statusBadge = `<span class="card-status status-reading"><i class="bi bi-book-half"></i> Reading${pct}</span>`;
+        readingBadge = `<span class="card-status status-reading"><i class="bi bi-book-half"></i> Reading${pct}</span>`;
     }
+    const ownershipBadge = book.is_owned === 0
+        ? '<span class="card-status status-not-owned"><i class="bi bi-bookmark-x"></i> Not owned</span>'
+        : '<span class="card-status status-owned"><i class="bi bi-bookmark-check"></i> Owned</span>';
+    const statusBadges = `<div class="card-statuses">${readingBadge}${ownershipBadge}</div>`;
 
     const rating = Number(book.rating) || 0;
     const favOn = book.is_favorite ? ' on' : '';
@@ -93,7 +94,7 @@ export function bookCardHtml(book: any): string {
                 <div class="card-title">${escapeHtml(book.title)}</div>
                 <div class="card-author">${authorsHtml(book.authors)}</div>
                 <div class="card-bottom">
-                    ${statusBadge}
+                    ${statusBadges}
                     <div class="card-meta-row">
                         <div class="card-stars" data-rating="${rating}">${stars}</div>
                         <button class="card-heart${favOn}" data-action="heart"

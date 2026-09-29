@@ -164,6 +164,46 @@ async def _add_owned_book(user_id: int, command: AgentCommand) -> dict:
     if existing:
         return {"created": False, "reason": "already_owned", "book": existing}
 
+    # Tracking a series first creates unowned reference entries so the owner can
+    # see what is missing. When an agent then adds one of those titles, promote
+    # the matching placeholder instead of inserting a second card at the same
+    # series position. Match the slot (rather than the catalog author) because
+    # a narrator/edition mismatch must not create a duplicate owned record.
+    placeholder = None
+    if series_link_id is not None and series_index is not None:
+        conn = db.get_db()
+        placeholder = conn.execute(
+            """SELECT id FROM books
+               WHERE user_id = ? AND series_link_id = ?
+                 AND series_index = ? AND is_owned = 0
+               LIMIT 1""",
+            (user_id, series_link_id, series_index),
+        ).fetchone()
+        conn.close()
+    if placeholder:
+        book_id = placeholder["id"]
+        db.update_book(book_id, user_id, {
+            "title": title,
+            "sort_title": db.make_sort_title(title),
+            "authors": authors,
+            "author_sort": db.make_author_sort(authors),
+            "description": _clean(metadata.get("description")),
+            "isbn": _clean(metadata.get("isbn")),
+            "tags": metadata.get("categories") or [],
+            "published_date": _clean(metadata.get("published_date")),
+            "book_format": command.book_format,
+            "is_owned": 1,
+        })
+        cover_saved = await _save_google_cover(
+            user_id, book_id, metadata.get("cover_url"),
+        )
+        return {
+            "created": False,
+            "reason": "promoted_series_placeholder",
+            "cover_saved": cover_saved,
+            "book": db.get_book(book_id, user_id),
+    }
+
     now = datetime.now(timezone.utc).isoformat()
     book_id = db.insert_book(
         user_id=user_id,

@@ -1690,9 +1690,16 @@ body::before {
     text-transform: uppercase;
     line-height: 1.4;
 }
+.card-statuses {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    align-items: center;
+}
 .card-status .bi { font-size: 0.78rem; line-height: 1; }
 .status-read       { background:#d6f0df; color:#0b5532; }
 .status-reading    { background:#dfe9ff; color:#1742a0; }
+.status-owned      { background:#edf0f4; color:#354052; }
 /* Not-owned pill is theme-aligned absence: dashed muted border on paper,
    no fill, muted ink. Matches the dashed ghost-cover treatment. */
 .status-not-owned  {
@@ -1702,6 +1709,7 @@ body::before {
 }
 [data-bs-theme=dark] .status-read       { background:#193a26; color:#7adfa1; }
 [data-bs-theme=dark] .status-reading    { background:#1b2748; color:#9fbcff; }
+[data-bs-theme=dark] .status-owned      { background:#26303f; color:#cbd5e1; }
 
 /* --- /recommendations page ------------------------------------------- */
 /* Minimal/editorial: no card chrome, the cover *is* the box. Type carries
