@@ -61,11 +61,18 @@ export async function renderSeriesView(
         const mainBooks = books.filter(b => !isHiddenShortStory(b));
         const mainGhosts = ghosts.filter(g => !isHiddenShortStory(g));
         const readCount = mainBooks.filter(b => b.reading_status === 'read').length;
+        const ownedCount = mainBooks.filter(b => b.is_owned !== 0).length;
+        const readNotOwnedCount = mainBooks.filter(
+            b => b.reading_status === 'read' && b.is_owned === 0,
+        ).length;
         const notOwnedCount = mainBooks.filter(b => b.is_owned === 0).length;
         const ghostCount = mainGhosts.length;
         const totalSlots = mainBooks.length + ghostCount;
         const notOwnedLabel = notOwnedCount > 0
             ? ` &middot; <span class="text-not-owned">${notOwnedCount} not owned</span>`
+            : '';
+        const readNotOwnedLabel = readNotOwnedCount > 0
+            ? ` &middot; <span class="text-muted">${readNotOwnedCount} read, not owned</span>`
             : '';
         const ghostLabel = ghostCount > 0
             ? ` &middot; <span class="text-muted">${ghostCount} not in library</span>`
@@ -120,6 +127,7 @@ export async function renderSeriesView(
                </a>`;
 
         const userRating: number | null = data.user_rating ?? null;
+        const userReview: string = data.user_review ?? '';
         const isFavorite: boolean = !!data.is_favorite;
         const isAllTimeFav: boolean = !!data.is_all_time_fav;
         const isSecondFav: boolean = !!data.is_second_fav;
@@ -128,6 +136,7 @@ export async function renderSeriesView(
         const ratingControls = isOwner
             ? renderSeriesRatingControls(userRating, isFavorite, isAllTimeFav, isSecondFav, isThirdFav)
             : renderSeriesRatingReadonly(userRating, isFavorite, isAllTimeFav, isSecondFav, isThirdFav);
+        const reviewHtml = renderSeriesReview(userReview, isOwner);
 
         const tierClass =
             isAllTimeFav ? ' series-header--gold'
@@ -150,9 +159,10 @@ export async function renderSeriesView(
                 <h4 class="mb-0">${escapeHtml(seriesName)}</h4>
                 ${ratingControls}
             </div>
+            ${reviewHtml}
             <div class="text-muted mb-2">
                 ${totalSlots} book${totalSlots !== 1 ? 's' : ''}
-                &middot; ${readCount}/${books.length} read${notOwnedLabel}${ghostLabel}
+                &middot; ${readCount} read &middot; ${ownedCount} owned${notOwnedLabel}${readNotOwnedLabel}${ghostLabel}
             </div>
             <div class="mb-3">${segmentsHtml}</div>
         `;
@@ -175,6 +185,23 @@ export async function renderSeriesView(
                     renderSeriesView(params);
                 } catch (e: any) {
                     alert(`Failed to update: ${e.message}`);
+                }
+            });
+
+            const reviewForm = app.querySelector<HTMLFormElement>('#series-review-form');
+            reviewForm?.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const textarea = reviewForm.querySelector<HTMLTextAreaElement>('textarea');
+                const save = reviewForm.querySelector<HTMLButtonElement>('button[type="submit"]');
+                if (!textarea || !save) return;
+                save.disabled = true;
+                try {
+                    await api.updateSeries(username, seriesId, { review: textarea.value });
+                    invalidateSeriesCache();
+                    renderSeriesView(params);
+                } catch (e: any) {
+                    alert(`Failed to save series review: ${e.message}`);
+                    save.disabled = false;
                 }
             });
         }
@@ -268,6 +295,29 @@ function escapeHtml(text: string): string {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function renderSeriesReview(review: string, isOwner: boolean): string {
+    const hasReview = review.trim().length > 0;
+    const body = hasReview
+        ? `<p class="mb-2" style="white-space:pre-wrap">${escapeHtml(review)}</p>`
+        : '<p class="text-muted mb-2">No series review yet.</p>';
+    const editor = isOwner
+        ? `<details>
+               <summary class="btn btn-outline-secondary btn-sm">${hasReview ? 'Edit series review' : 'Write a series review'}</summary>
+               <form id="series-review-form" class="mt-2">
+                   <label class="form-label small" for="series-review-text">Your series review</label>
+                   <textarea id="series-review-text" class="form-control" rows="4">${escapeHtml(review)}</textarea>
+                   <button type="submit" class="btn btn-primary btn-sm mt-2">Save review</button>
+               </form>
+           </details>`
+        : '';
+    return `<section class="card card-body mb-3" aria-label="Series review">
+                <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                    <h5 class="mb-0">Series review</h5>
+                </div>
+                ${body}${editor}
+            </section>`;
 }
 
 // ─── series-level rating + favorite + tier controls ──────────────────

@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS user_series (
     monitored INTEGER NOT NULL DEFAULT 1,
     display_name TEXT,
     series_complete INTEGER NOT NULL DEFAULT 1,
+    review TEXT,
     UNIQUE(user_id, series_link_id)
 );
 
@@ -241,6 +242,7 @@ def init_db() -> None:
     _migrate_also_physical()
     _migrate_book_tiers()
     _migrate_user_series_rating()
+    _migrate_user_series_review()
     _migrate_third_fav()
     _migrate_price()
     _migrate_length_fields()
@@ -249,7 +251,35 @@ def init_db() -> None:
     _migrate_manual_category()
     _migrate_series_entries_cover_url()
     _migrate_asin()
+    cleanup_stale_sync_data()
     log.info("Database initialized at %s", DB_PATH)
+
+
+def cleanup_stale_sync_data() -> int:
+    """Age out abandoned KOReader progress without touching completed books.
+
+    A device may disappear or be reset while a book is marked as in progress.
+    After ninety days that progress can no longer be treated as an active sync
+    cursor.  Completed reading state, ratings, and all book metadata remain
+    untouched.  A subsequent KOReader sync simply establishes a fresh cursor.
+    """
+    cutoff = datetime.now(timezone.utc).timestamp() - (90 * 24 * 60 * 60)
+    cutoff_iso = datetime.fromtimestamp(cutoff, timezone.utc).isoformat()
+    conn = get_db()
+    cursor = conn.execute(
+        """UPDATE books
+        SET progress = NULL, sync_updated_at = NULL
+        WHERE reading_status = 'reading'
+          AND sync_updated_at IS NOT NULL
+          AND datetime(sync_updated_at) < datetime(?)""",
+        (cutoff_iso,),
+    )
+    conn.commit()
+    cleared = cursor.rowcount
+    conn.close()
+    if cleared:
+        log.info("Cleared stale KOReader progress for %d book(s)", cleared)
+    return cleared
 
 
 def _migrate_reading_status() -> None:
@@ -795,6 +825,21 @@ def _migrate_user_series_rating() -> None:
         log.info("Adding rating/favorite columns to user_series")
         for stmt in add:
             conn.execute(stmt)
+        conn.commit()
+    conn.close()
+
+
+def _migrate_user_series_review() -> None:
+    """Add a private written review field to each user's series record."""
+    conn = get_db()
+    columns = {
+        row[1]
+        for row in conn.execute(
+            "PRAGMA table_info(user_series)"
+        ).fetchall()
+    }
+    if "review" not in columns:
+        conn.execute("ALTER TABLE user_series ADD COLUMN review TEXT")
         conn.commit()
     conn.close()
 
@@ -3307,7 +3352,14 @@ def get_series_link_by_id(
 def get_or_create_series_link(
     user_id: int, series_name: str
 ) -> int:
-    """Find or create a global series_link, ensure user subscription."""
+    """Find or create a global series_link, ensure user subscription.
+
+    Catalog sources mix typographic and ASCII apostrophes.  Canonicalizing
+    them here prevents one series from being split into duplicate tracks.
+    """
+    series_name = " ".join(
+        series_name.replace("’", "'").replace("‘", "'").split()
+    )
     conn = get_db()
     row = conn.execute(
         """SELECT id FROM series_link
@@ -3766,7 +3818,7 @@ def update_user_series_fields(
     allowed = {
         "rating", "is_favorite",
         "is_all_time_fav", "is_second_fav", "is_third_fav",
-        "monitored", "series_complete", "display_name",
+        "monitored", "series_complete", "display_name", "review",
     }
     filtered = {k: v for k, v in fields.items() if k in allowed}
     # Coerce bools to 0/1 for INTEGER columns

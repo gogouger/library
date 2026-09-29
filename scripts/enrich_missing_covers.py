@@ -22,6 +22,7 @@ to skip writes, `--user all` to walk every non-archive user.
 """
 
 import argparse
+import asyncio
 import sys
 import time
 from datetime import datetime, timezone
@@ -31,7 +32,7 @@ import httpx
 from books.helpers import db, hardcover
 
 
-USER_AGENT = "meron-books-bot/1.0 gordon@ggouger.com"
+USER_AGENT = "library-bot/1.0 gordon@ggouger.com"
 OL_SEARCH = "https://openlibrary.org/search.json"
 OL_COVER = "https://covers.openlibrary.org/b/id/{cover_id}-L.jpg"
 GBOOKS = "https://www.googleapis.com/books/v1/volumes"
@@ -116,6 +117,36 @@ def _title_similarity(a: str, b: str) -> float:
     if not ta or not tb:
         return 0.0
     return len(ta & tb) / max(len(ta), len(tb))
+
+
+def _try_hardcover(
+    title: str, authors: str, client: httpx.Client,
+) -> bytes | None:
+    """Fetch an exact-or-near-exact Hardcover cover before generic sources."""
+    if not title:
+        return None
+    try:
+        matches = asyncio.run(hardcover.search_books_rich(title, 8))
+        expected_author = _norm_title(_first_author(authors))
+        for match in matches:
+            if _title_similarity(match.get("title", ""), title) < 0.8:
+                continue
+            match_authors = " ".join(match.get("author_names") or [])
+            if expected_author and expected_author not in _norm_title(match_authors):
+                continue
+            url = match.get("cover_url")
+            if not url:
+                continue
+            response = client.get(url)
+            if (
+                response.status_code == 200
+                and len(response.content) > 1500
+                and response.headers.get("content-type", "").startswith("image")
+            ):
+                return response.content
+    except Exception:
+        return None
+    return None
 
 
 def _try_apple_books(
@@ -340,12 +371,13 @@ def _try_amazon(
     return None
 
 
-def _missing_books_for(user_id: int) -> list[dict]:
+def _missing_books_for(user_id: int, owned_only: bool = False) -> list[dict]:
     conn = db.get_db()
+    ownership_clause = " AND is_owned = 1" if owned_only else ""
     rows = conn.execute(
         """SELECT id, user_id, title, authors, asin
            FROM books
-           WHERE user_id = ? AND cover_filename IS NULL""",
+           WHERE user_id = ? AND cover_filename IS NULL""" + ownership_clause,
         (user_id,),
     ).fetchall()
     conn.close()
@@ -384,6 +416,11 @@ def main() -> None:
         help="Don't write covers or DB updates.",
     )
     parser.add_argument(
+        "--owned-only",
+        action="store_true",
+        help="Only repair books in the user's owned collection.",
+    )
+    parser.add_argument(
         "--sleep",
         type=float,
         default=0.4,
@@ -402,6 +439,7 @@ def main() -> None:
             sys.exit(1)
         user_ids = [user["id"]]
 
+    total_filled_hardcover = 0
     total_filled_ol = 0
     total_filled_gb = 0
     total_filled_apple = 0
@@ -416,7 +454,7 @@ def main() -> None:
         headers={"User-Agent": USER_AGENT},
     ) as client:
         for uid in user_ids:
-            books = _missing_books_for(uid)
+            books = _missing_books_for(uid, owned_only=args.owned_only)
             if not books:
                 continue
             covers_dir = db.DATA_DIR / "covers" / str(uid)
@@ -431,9 +469,13 @@ def main() -> None:
                 authors = book["authors"] or ""
 
                 source = None
-                cover = _try_openlibrary(title, authors, client)
+                cover = _try_hardcover(title, authors, client)
                 if cover:
-                    source = "openlibrary"
+                    source = "hardcover"
+                if not cover:
+                    cover = _try_openlibrary(title, authors, client)
+                if cover:
+                    source = source or "openlibrary"
                 else:
                     time.sleep(args.sleep)
                     cover = _try_google_books(title, authors, client)
@@ -494,7 +536,9 @@ def main() -> None:
                     print(f"  + {book['id']:>5} {title[:50]:50s} "
                           f"filled from {source}")
 
-                if source == "openlibrary":
+                if source == "hardcover":
+                    total_filled_hardcover += 1
+                elif source == "openlibrary":
                     total_filled_ol += 1
                 elif source == "google":
                     total_filled_gb += 1
@@ -511,13 +555,14 @@ def main() -> None:
                 break
 
     total_filled = (
-        total_filled_ol + total_filled_gb
+        total_filled_hardcover + total_filled_ol + total_filled_gb
         + total_filled_apple + total_filled_ol_search
         + total_filled_amazon
     )
     print(
         f"\nDone: processed {total_processed}, "
         f"filled {total_filled} ("
+        f"{total_filled_hardcover} Hardcover, "
         f"{total_filled_ol} OpenLibrary, "
         f"{total_filled_gb} Google Books, "
         f"{total_filled_apple} Apple Books, "

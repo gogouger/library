@@ -8,3 +8,8 @@ __pycache__/
 node_modules/
 books/ui/dist/
 data/
+
+# Legacy deployment mirrors populated by deploy.sh; canonical source lives
+# in the tracked repository root and books/ui/.
+/api/
+/client/

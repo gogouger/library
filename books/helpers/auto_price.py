@@ -227,7 +227,7 @@ async def auto_price_user(user_id: int) -> dict:
 
     async with httpx.AsyncClient(
         follow_redirects=True,
-        headers={"User-Agent": "athenaeum/1.0 gordon@ggouger.com"},
+        headers={"User-Agent": "library/1.0 gordon@ggouger.com"},
     ) as client:
         await asyncio.gather(*(process(client, b) for b in books))
 

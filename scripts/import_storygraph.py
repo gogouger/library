@@ -119,7 +119,7 @@ def main() -> None:
     added = skipped = covered = 0
     with httpx.Client(
         follow_redirects=True, timeout=20,
-        headers={"User-Agent": "meron-books-import/1.0"},
+        headers={"User-Agent": "library-import/1.0"},
     ) as client:
         for row in rows:
             title = (row.get("Title") or "").strip()

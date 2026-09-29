@@ -179,6 +179,9 @@ def list_books(
     group_by_series: bool | None = None,
 ) -> dict:
     user_id = owner["id"]
+    # No ownership filter means the complete personal series catalog. The
+    # explicit Owned / Don't Own filters still narrow the view when chosen.
+    effective_is_owned = is_owned
     # When grouping by series, fetch a wider page so we can
     # reorder client-side. The frontend currently paginates
     # via infinite scroll but the grouped view benefits from
@@ -202,7 +205,7 @@ def list_books(
         min_rating=min_rating,
         max_rating=max_rating,
         is_favorite=is_favorite,
-        is_owned=is_owned,
+        is_owned=effective_is_owned,
         has_series=effective_has_series,
         rated=rated,
         book_format=book_format,
@@ -220,7 +223,7 @@ def list_books(
         min_rating=min_rating,
         max_rating=max_rating,
         is_favorite=is_favorite,
-        is_owned=is_owned,
+        is_owned=effective_is_owned,
         has_series=effective_has_series,
         rated=rated,
         book_format=book_format,

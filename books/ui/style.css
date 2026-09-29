@@ -1587,6 +1587,7 @@ body::before {
 .navbar .nav-link:hover,
 .navbar .nav-link.active { color: var(--accent) !important; }
 .navbar .navbar-brand .bi { color: var(--accent); }
+.navbar .navbar-brand{display:flex;align-items:center;gap:.45rem;letter-spacing:.02em}.family-mark{color:var(--accent);font-size:.62rem;font-weight:600;letter-spacing:.12em}.family-projects{margin-left:.55rem;border-left:1px solid var(--line2);padding-left:1rem!important}.navbar .auth-action{border:1px solid var(--line2);border-radius:.2rem;padding:.36rem .65rem!important;color:var(--ink)!important}.navbar .auth-action:hover{border-color:var(--accent);color:var(--accent)!important}
 .navbar-toggler { border-color: var(--line2); }
 
 /* flatter cards/panels — hairline rules instead of heavy white shadows */
@@ -1673,7 +1674,7 @@ body::before {
     .book-detail .btn-sm { padding: 0.4rem 0.7rem; }
 }
 
-/* card-status (Athenaeum) — small text badge below the title spelling out
+/* card-status (Library) — small text badge below the title spelling out
    what the colored gutter is implying. Belt-and-suspenders so visitors don't
    have to guess what "slightly greyed out cover" means. */
 .card-status {
@@ -1689,9 +1690,16 @@ body::before {
     text-transform: uppercase;
     line-height: 1.4;
 }
+.card-statuses {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    align-items: center;
+}
 .card-status .bi { font-size: 0.78rem; line-height: 1; }
 .status-read       { background:#d6f0df; color:#0b5532; }
 .status-reading    { background:#dfe9ff; color:#1742a0; }
+.status-owned      { background:#edf0f4; color:#354052; }
 /* Not-owned pill is theme-aligned absence: dashed muted border on paper,
    no fill, muted ink. Matches the dashed ghost-cover treatment. */
 .status-not-owned  {
@@ -1701,6 +1709,7 @@ body::before {
 }
 [data-bs-theme=dark] .status-read       { background:#193a26; color:#7adfa1; }
 [data-bs-theme=dark] .status-reading    { background:#1b2748; color:#9fbcff; }
+[data-bs-theme=dark] .status-owned      { background:#26303f; color:#cbd5e1; }
 
 /* --- /recommendations page ------------------------------------------- */
 /* Minimal/editorial: no card chrome, the cover *is* the box. Type carries

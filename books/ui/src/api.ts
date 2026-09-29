@@ -19,6 +19,7 @@ export async function apiFetch(
 
     const resp = await fetch(`${API_BASE}${path}`, {
         ...options,
+        cache: 'no-store',
         headers,
     });
 
@@ -35,7 +36,7 @@ export async function apiFetch(
         if (newToken) {
             headers['Authorization'] = `Bearer ${newToken}`;
         }
-        const retry = await fetch(`${API_BASE}${path}`, { ...options, headers });
+        const retry = await fetch(`${API_BASE}${path}`, { ...options, cache: 'no-store', headers });
         if (!retry.ok) {
             throw new Error('Request failed after re-authentication');
         }
@@ -68,6 +69,7 @@ async function apiFetchRaw(
 
     const resp = await fetch(`${API_BASE}${path}`, {
         ...options,
+        cache: 'no-store',
         headers,
     });
 
@@ -84,7 +86,7 @@ async function apiFetchRaw(
         if (newToken) {
             headers['Authorization'] = `Bearer ${newToken}`;
         }
-        const retry = await fetch(`${API_BASE}${path}`, { ...options, headers });
+        const retry = await fetch(`${API_BASE}${path}`, { ...options, cache: 'no-store', headers });
         if (!retry.ok) {
             throw new Error('Request failed after re-authentication');
         }

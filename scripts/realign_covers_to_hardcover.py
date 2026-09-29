@@ -46,7 +46,7 @@ from PIL import Image
 from books.helpers import db, hardcover
 
 
-USER_AGENT = "meron-books-bot/1.0 gordon@ggouger.com"
+USER_AGENT = "library-bot/1.0 gordon@ggouger.com"
 JPEG_QUALITY = 88
 MIN_BYTES = 5 * 1024
 

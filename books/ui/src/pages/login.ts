@@ -1,5 +1,4 @@
-import { getUser, clearAuth, renderGoogleButton } from '../auth';
-import { openSignInModal } from '../auth-modal';
+import { getUser, clearAuth } from '../auth';
 import { getLibraryUsername } from '../context';
 
 export function renderLogin(): void {
@@ -9,16 +8,15 @@ export function renderLogin(): void {
             <div class="card shadow-sm">
                 <div class="card-body p-4">
                     <h3 class="text-center mb-4">
-                        <i class="bi bi-bookshelf"></i> Athenaeum
+                        <i class="bi bi-bookshelf"></i> Library
                     </h3>
-                    <div id="login-error" class="alert alert-danger d-none"></div>
-                    <div id="google-signin-button" class="d-flex justify-content-center"></div>
+                    <a class="btn btn-primary w-100" href="https://auth.gordongouger.com/?rd=${encodeURIComponent(window.location.href)}">
+                        Owner sign in
+                    </a>
                 </div>
             </div>
         </div>
     `;
-
-    renderGoogleButton('google-signin-button');
 }
 
 export function updateNavbar(): void {
@@ -28,9 +26,9 @@ export function updateNavbar(): void {
     const navLinks = document.getElementById('nav-links')!;
     const navUser = document.getElementById('nav-user')!;
     const navUsername = document.getElementById('nav-username')!;
-    const navLogout = document.getElementById('nav-logout')!;
-    const navSignin = document.getElementById('nav-signin')!;
-    const navMyLibrary = document.getElementById('nav-my-library')!;
+    const navLogout = document.getElementById('nav-logout') as HTMLAnchorElement;
+    const navSignin = document.getElementById('nav-signin') as HTMLAnchorElement;
+    const navMyLibrary = document.getElementById('nav-my-library') as HTMLAnchorElement;
     const navAddItem = document.getElementById('nav-add-item')!;
     // Scan was removed from the nav (collapsed into the Add Book page CTA).
     // Tolerate either DOM shape so any stale cached index.html still works.
@@ -133,15 +131,10 @@ export function updateNavbar(): void {
             });
         };
     } else {
-        // Anonymous visitor: read-only, show sign-in link that opens the
-        // inline modal (no separate Authelia portal page). Falls back to the
-        // portal URL for users without JS via the href attribute.
+        // Anonymous visitor: all authentication happens at the shared portal.
         const rd = encodeURIComponent(window.location.href);
         navSignin.href = `https://auth.gordongouger.com/?rd=${rd}`;
-        navSignin.onclick = (e) => {
-            e.preventDefault();
-            openSignInModal();
-        };
+        navSignin.onclick = null;
         navSignin.classList.remove('d-none');
     }
 }
